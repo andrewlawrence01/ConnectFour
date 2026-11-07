@@ -1,0 +1,160 @@
+@using System.Drawing
+@inject ConnectFour.GameState State
+
+<PageTitle>Connect Four</PageTitle>
+
+<main class="connect-four" style="@BoardStyle">
+    <h1>Connect Four</h1>
+    <p class="subtitle">Take turns dropping your coins into the board!</p>
+
+    <div class="game-status">
+        @if (State.CheckForWin() == GameState.WinState.Player1_Wins)
+        {
+            <h2>Player 1 Wins!</h2>
+        }
+        else if (State.CheckForWin() == GameState.WinState.Player2_Wins)
+        {
+            <h2>Player 2 Wins!</h2>
+        }
+        else if (State.CheckForWin() == GameState.WinState.Tie)
+        {
+            <h2>It's a Tie!</h2>
+        }
+        else
+        {
+            <h2>Player @State.PlayerTurn's Turn</h2>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <p class="error-message">@errorMessage</p>
+        }
+    </div>
+
+    <div class="game-layout">
+        <section class="board-section">
+            <div class="column-controls">
+                @for (int column = 0; column < 7; column++)
+                {
+                    int selectedColumn = column;
+
+                    <button class="column-button"
+                            @onclick="() => PlayPiece(selectedColumn)"
+                            disabled="@(State.IsColumnFull(selectedColumn) || GameOver)">
+                        ↓
+                    </button>
+                }
+            </div>
+
+            <div class="game-board">
+                @for (int index = 0; index < 42; index++)
+                {
+                    int piece = State.TheBoard[index];
+
+                    string pieceClass = piece switch
+                    {
+                        1 => "piece player-one",
+                        2 => "piece player-two",
+                        _ => "piece empty"
+                    };
+
+                    string pieceStyle = piece switch
+                    {
+                        1 => $"background-color: {ColorTranslator.ToHtml(Player1Color)};",
+                        2 => $"background-color: {ColorTranslator.ToHtml(Player2Color)};",
+                        _ => "background-color: #e2e8f0;"
+                    };
+
+                    <div class="board-cell">
+                        <span class="@pieceClass"
+                              style="@pieceStyle"
+                              aria-label="@(piece == 0 ? "Empty" : $"Player {piece}")">
+                        </span>
+                    </div>
+                }
+            </div>
+
+            <button class="reset-button" @onclick="ResetGame">
+                New Game
+            </button>
+        </section>
+
+        <aside class="history-section">
+            <h2>Move History</h2>
+
+            @if (moveHistory.Count == 0)
+            {
+                <p>No moves yet. Player 1 goes first!</p>
+            }
+            else
+            {
+                <ol class="move-list">
+                    @foreach (var move in moveHistory)
+                    {
+                        <li>
+                            <span class="history-player player-@move.Player">
+                                Player @move.Player
+                            </span>
+                            dropped a coin in column @move.Column.
+                        </li>
+                    }
+                </ol>
+            }
+
+            <p class="move-count">
+                Total Moves: @moveHistory.Count
+            </p>
+        </aside>
+    </div>
+</main>
+
+@code {
+    [Parameter]
+    public Color BoardColor { get; set; } = Color.Black;
+
+    [Parameter]
+    public Color Player1Color { get; set; } = Color.Red;
+
+    [Parameter]
+    public Color Player2Color { get; set; } = Color.Yellow;
+
+    private string BoardStyle =>
+    $"--board-color: {ColorTranslator.ToHtml(BoardColor)};" +
+    $"--player1-color: {ColorTranslator.ToHtml(Player1Color)};" +
+    $"--player2-color: {ColorTranslator.ToHtml(Player2Color)};";
+
+    private List<MoveEntry> moveHistory = new();
+
+    private string errorMessage = "";
+
+    private bool GameOver =>
+        State.CheckForWin() != GameState.WinState.No_Winner;
+
+    private void PlayPiece(int column)
+    {
+        errorMessage = "";
+
+        try
+        {
+            int row = State.PlayPiece((byte)column);
+
+            moveHistory.Add(new MoveEntry(
+                State.TheBoard[(row - 1) * 7 + column],
+                column + 1
+            ));
+        }
+        catch (ArgumentException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private void ResetGame()
+    {
+        State.ResetBoard();
+        moveHistory.Clear();
+        errorMessage = "";
+    }
+
+    private record MoveEntry(int Player, int Column);
+}

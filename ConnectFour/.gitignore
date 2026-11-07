@@ -1,0 +1,22 @@
+# Build files
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Visual Studio Code
+.vscode/
+
+# NuGet
+*.nupkg
+*.snupkg
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
